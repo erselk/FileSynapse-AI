@@ -1,0 +1,527 @@
+import os
+import mimetypes
+import logging
+from datetime import datetime
+import re
+
+# Initialize mimetypes
+mimetypes.init()
+
+class FileAnalyzer:
+    """
+    A class to analyze files and extract useful information
+    """
+    
+    def __init__(self):
+        """
+        Initialize the FileAnalyzer with common file extensions and MIME types
+        """
+        logging.info("Initializing FileAnalyzer")
+        
+        # Dictionary to store common file types and their extensions
+        self.file_extensions = {
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.txt': 'text/plain',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.mp4': 'video/mp4',
+            '.mp3': 'audio/mpeg',
+            '.psd': 'image/vnd.adobe.photoshop',
+            '.ai': 'application/illustrator',
+            '.zip': 'application/zip',
+            '.rar': 'application/x-rar-compressed',
+            '.exe': 'application/x-msdownload',
+            '.py': 'text/x-python',
+            '.js': 'application/javascript',
+            '.html': 'text/html',
+            '.css': 'text/css',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        }
+        
+        # Regular expressions for extracting information from filenames
+        self.version_regex = re.compile(r'v(\d+(\.\d+)*)|version\s*(\d+(\.\d+)*)', re.IGNORECASE)
+        self.draft_regex = re.compile(r'draft|taslak', re.IGNORECASE)
+        self.final_regex = re.compile(r'final|son', re.IGNORECASE)
+        
+    def scan_directory(self, directory_path):
+        """
+        Scan a directory and return information about all files
+        
+        Args:
+            directory_path (str): Path to the directory to scan
+            
+        Returns:
+            list: List of dictionaries with file information
+        """
+        logging.info(f"Scanning directory: {directory_path}")
+        
+        files_info = []
+        
+        try:
+            for root, dirs, files in os.walk(directory_path):
+                for filename in files:
+                    file_path = os.path.join(root, filename)
+                    
+                    # Get file information
+                    file_info = self.analyze_file(file_path)
+                    
+                    if file_info:
+                        files_info.append(file_info)
+                        
+        except Exception as e:
+            logging.error(f"Error scanning directory: {e}")
+            
+        logging.info(f"Found {len(files_info)} files")
+        return files_info
+    
+    def analyze_file(self, file_path):
+        """
+        Analyze a file and extract information
+        
+        Args:
+            file_path (str): Path to the file
+            
+        Returns:
+            dict: Dictionary with file information
+        """
+        try:
+            # Skip files that don't exist or are too large
+            if not os.path.exists(file_path) or os.path.getsize(file_path) > 100 * 1024 * 1024:  # Skip files > 100MB
+                return None
+            
+            # Basic file information
+            filename = os.path.basename(file_path)
+            file_extension = os.path.splitext(filename)[1].lower()
+            file_size = os.path.getsize(file_path)
+            
+            # Get file modification time
+            modification_time = os.path.getmtime(file_path)
+            modified_date = datetime.fromtimestamp(modification_time)
+            
+            # Get file creation time
+            creation_time = os.path.getctime(file_path)
+            creation_date = datetime.fromtimestamp(creation_time)
+            
+            # Get MIME type
+            mime_type = self.get_mime_type(file_path)
+            
+            # Extract version information from filename
+            version_info = self.extract_version_info(filename)
+            
+            # Create file information dictionary
+            file_info = {
+                'path': file_path,
+                'name': filename,
+                'extension': file_extension,
+                'size': file_size,
+                'modified_date': modified_date,
+                'creation_date': creation_date,
+                'mime_type': mime_type,
+                'version_info': version_info
+            }
+            
+            # Add file content analysis if possible
+            if file_size < 10 * 1024 * 1024:  # Only analyze files < 10MB
+                keywords = self.extract_keywords(file_path, mime_type)
+                file_info['keywords'] = keywords
+            
+            return file_info
+            
+        except Exception as e:
+            logging.error(f"Error analyzing file {file_path}: {e}")
+            return None
+    
+    def get_mime_type(self, file_path):
+        """
+        Get the MIME type of a file using file extension
+        
+        Args:
+            file_path (str): Path to the file
+            
+        Returns:
+            str: MIME type of the file
+        """
+        try:
+            # Get file extension
+            extension = os.path.splitext(file_path)[1].lower()
+            
+            # If extension is in our dictionary, return the MIME type
+            if extension in self.file_extensions:
+                return self.file_extensions[extension]
+            
+            # Otherwise, try to guess using mimetypes
+            mime_type, _ = mimetypes.guess_type(file_path)
+            
+            # If mimetypes failed, use a default based on the extension
+            if mime_type is None:
+                if extension:
+                    mime_type = f"application/{extension[1:]}"
+                else:
+                    mime_type = "application/octet-stream"
+            
+            return mime_type
+        
+        except Exception as e:
+            logging.error(f"Error getting MIME type for {file_path}: {e}")
+            return "application/octet-stream"
+    
+    def extract_version_info(self, filename):
+        """
+        Extract version information from a filename
+        
+        Args:
+            filename (str): Name of the file
+            
+        Returns:
+            dict: Dictionary with version information
+        """
+        # Initialize version info
+        version_info = {
+            'is_version': False,
+            'version_number': None,
+            'is_draft': False,
+            'is_final': False
+        }
+        
+        # Check for version number
+        version_match = self.version_regex.search(filename)
+        if version_match:
+            version_info['is_version'] = True
+            version_info['version_number'] = version_match.group(1) or version_match.group(3)
+        
+        # Check for draft/final status
+        if self.draft_regex.search(filename):
+            version_info['is_draft'] = True
+        
+        if self.final_regex.search(filename):
+            version_info['is_final'] = True
+        
+        return version_info
+    
+    def extract_keywords(self, file_path, mime_type):
+        """
+        Extract keywords from a file's content
+        
+        Args:
+            file_path (str): Path to the file
+            mime_type (str): MIME type of the file
+            
+        Returns:
+            list: List of keywords
+        """
+        keywords = []
+        
+        try:
+            # For text files
+            if mime_type.startswith('text/') or mime_type in ['application/pdf', 'application/msword', 
+                                                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+                # Read the first 1000 bytes as text
+                with open(file_path, 'rb') as f:
+                    content = f.read(1000)
+                
+                # Try to decode as UTF-8, ignore errors
+                try:
+                    text = content.decode('utf-8', errors='ignore')
+                    # Simple keyword extraction - just split by spaces and filter
+                    words = [word.lower() for word in re.findall(r'\b\w+\b', text) if len(word) > 3]
+                    keywords = list(set(words))[:20]  # Take up to 20 unique keywords
+                except Exception:
+                    pass
+        
+        except Exception as e:
+            logging.error(f"Error extracting keywords from {file_path}: {e}")
+        
+        return keywords
+
+
+# Test the class if this file is run directly
+if __name__ == "__main__":
+    analyzer = FileAnalyzer()
+    test_dir = os.path.expanduser("~/Documents")
+    files = analyzer.scan_directory(test_dir)
+    for file in files[:5]:  # Print first 5 files for testing
+        print(f"File: {file['name']}")
+        print(f"  MIME Type: {file['mime_type']}")
+        print(f"  Size: {file['size']} bytes")
+        self.setup_logging()
+        self.mime = magic.Magic(mime=True)
+        mimetypes.init()
+        
+    def setup_logging(self):
+        """Setup logging configuration."""
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
+            
+        logging.basicConfig(
+            filename=os.path.join('logs', 'file_analyzer.log'),
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
+        
+    def scan_directory(self, path: str, options: Dict = None) -> List[Dict]:
+        """Scan directory and return file information."""
+        if options is None:
+            options = {
+                'recursive': True,
+                'follow_symlinks': False,
+                'include_hidden': False,
+                'max_size_mb': 100
+            }
+            
+        results = []
+        try:
+            for root, dirs, files in os.walk(path, followlinks=options['follow_symlinks']):
+                # Skip hidden directories if not included
+                if not options['include_hidden']:
+                    dirs[:] = [d for d in dirs if not d.startswith('.')]
+                    
+                for file in files:
+                    # Skip hidden files if not included
+                    if not options['include_hidden'] and file.startswith('.'):
+                        continue
+                        
+                    file_path = os.path.join(root, file)
+                    try:
+                        # Check file size
+                        size = os.path.getsize(file_path) / (1024 * 1024)  # Convert to MB
+                        if size > options['max_size_mb']:
+                            logging.warning(f"Skipping large file: {file_path}")
+                            continue
+                            
+                        file_info = self._analyze_file(file_path)
+                        if file_info:
+                            results.append(file_info)
+                            
+                    except Exception as e:
+                        logging.error(f"Error analyzing file {file_path}: {e}")
+                        
+                if not options['recursive']:
+                    break
+                    
+        except Exception as e:
+            logging.error(f"Error scanning directory {path}: {e}")
+            
+        return results
+        
+    def _analyze_file(self, file_path: str) -> Optional[Dict]:
+        """Analyze a single file and return its information."""
+        try:
+            file_info = {
+                'path': file_path,
+                'name': os.path.basename(file_path),
+                'extension': os.path.splitext(file_path)[1].lower(),
+                'size': os.path.getsize(file_path),
+                'created': datetime.fromtimestamp(os.path.getctime(file_path)),
+                'modified': datetime.fromtimestamp(os.path.getmtime(file_path)),
+                'hash': self._calculate_hash(file_path),
+                'mime_type': self.mime.from_file(file_path)
+            }
+            
+            # Extract additional metadata based on file type
+            metadata = self._extract_metadata(file_path, file_info['mime_type'])
+            if metadata:
+                file_info['metadata'] = metadata
+                
+            return file_info
+            
+        except Exception as e:
+            logging.error(f"Error in file analysis: {e}")
+            return None
+            
+    def _calculate_hash(self, file_path: str) -> str:
+        """Calculate MD5 hash of file."""
+        try:
+            hasher = hashlib.md5()
+            with open(file_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b''):
+                    hasher.update(chunk)
+            return hasher.hexdigest()
+        except Exception as e:
+            logging.error(f"Error calculating hash: {e}")
+            return ''
+            
+    def _extract_metadata(self, file_path: str, mime_type: str) -> Optional[Dict]:
+        """Extract metadata based on file type."""
+        try:
+            if mime_type.startswith('image/'):
+                return self._extract_image_metadata(file_path)
+            elif mime_type == 'application/pdf':
+                return self._extract_pdf_metadata(file_path)
+            elif mime_type in ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+                return self._extract_docx_metadata(file_path)
+            elif mime_type.startswith('text/'):
+                return self._extract_text_metadata(file_path)
+            return None
+        except Exception as e:
+            logging.error(f"Error extracting metadata: {e}")
+            return None
+            
+    def _extract_image_metadata(self, file_path: str) -> Dict:
+        """Extract metadata from image files."""
+        metadata = {}
+        try:
+            with Image.open(file_path) as img:
+                metadata['dimensions'] = img.size
+                metadata['format'] = img.format
+                metadata['mode'] = img.mode
+                
+            with open(file_path, 'rb') as f:
+                tags = exifread.process_file(f)
+                metadata['exif'] = {str(k): str(v) for k, v in tags.items()}
+                
+        except Exception as e:
+            logging.error(f"Error extracting image metadata: {e}")
+            
+        return metadata
+        
+    def _extract_pdf_metadata(self, file_path: str) -> Dict:
+        """Extract metadata from PDF files."""
+        metadata = {}
+        try:
+            with open(file_path, 'rb') as f:
+                pdf = PyPDF2.PdfReader(f)
+                metadata['pages'] = len(pdf.pages)
+                if pdf.metadata:
+                    metadata['info'] = {k: str(v) for k, v in pdf.metadata.items()}
+                    
+        except Exception as e:
+            logging.error(f"Error extracting PDF metadata: {e}")
+            
+        return metadata
+        
+    def _extract_docx_metadata(self, file_path: str) -> Dict:
+        """Extract metadata from Word documents."""
+        metadata = {}
+        try:
+            doc = docx.Document(file_path)
+            metadata['paragraphs'] = len(doc.paragraphs)
+            core_props = doc.core_properties
+            metadata['title'] = core_props.title
+            metadata['author'] = core_props.author
+            metadata['created'] = str(core_props.created)
+            metadata['modified'] = str(core_props.modified)
+            
+        except Exception as e:
+            logging.error(f"Error extracting Word document metadata: {e}")
+            
+        return metadata
+        
+    def _extract_text_metadata(self, file_path: str) -> Dict:
+        """Extract metadata from text files."""
+        metadata = {}
+        try:
+            with open(file_path, 'rb') as f:
+                raw = f.read()
+                result = chardet.detect(raw)
+                metadata['encoding'] = result['encoding']
+                metadata['confidence'] = result['confidence']
+                
+            with open(file_path, 'r', encoding=metadata['encoding']) as f:
+                lines = f.readlines()
+                metadata['lines'] = len(lines)
+                metadata['size'] = len(raw)
+                
+        except Exception as e:
+            logging.error(f"Error extracting text metadata: {e}")
+            
+        return metadata
+    
+    def group_similar_files(self, files_info: List[Dict]) -> List[List[Dict]]:
+        """Group similar files based on name, content, and metadata."""
+        from fuzzywuzzy import fuzz
+        
+        groups = []
+        processed = set()
+        
+        for i, file1 in enumerate(files_info):
+            if i in processed:
+                continue
+                
+            current_group = [file1]
+            processed.add(i)
+            
+            for j, file2 in enumerate(files_info[i+1:], i+1):
+                if j in processed:
+                    continue
+                    
+                # Compare files
+                if self._are_files_similar(file1, file2):
+                    current_group.append(file2)
+                    processed.add(j)
+            
+            if len(current_group) > 1:
+                groups.append(current_group)
+                
+        return groups
+    
+    def _are_files_similar(self, file1: Dict, file2: Dict) -> bool:
+        """Check if two files are similar based on various criteria."""
+        from fuzzywuzzy import fuzz
+        
+        # Compare names
+        name_similarity = fuzz.ratio(file1['name'], file2['name'])
+        if name_similarity > 70:
+            return True
+            
+        # Compare sizes (if they're close)
+        size_diff = abs(file1['size'] - file2['size'])
+        if size_diff < 1024:  # Within 1KB
+            return True
+            
+        # Compare hashes
+        if file1['hash'] == file2['hash']:
+            return True
+            
+        # Compare metadata for specific file types
+        if file1['mime_type'] == file2['mime_type']:
+            if file1['mime_type'].startswith('image/'):
+                return self._are_images_similar(file1, file2)
+            elif file1['mime_type'] == 'application/pdf':
+                return self._are_pdfs_similar(file1, file2)
+                
+        return False
+    
+    def _are_images_similar(self, file1: Dict, file2: Dict) -> bool:
+        """Check if two images are similar."""
+        try:
+            # Compare dimensions
+            if 'dimensions' in file1 and 'dimensions' in file2:
+                if file1['dimensions'] == file2['dimensions']:
+                    return True
+                    
+            # Compare EXIF data
+            if 'exif' in file1 and 'exif' in file2:
+                common_tags = set(file1['exif'].keys()) & set(file2['exif'].keys())
+                if common_tags:
+                    return True
+        except:
+            pass
+            
+        return False
+    
+    def _are_pdfs_similar(self, file1: Dict, file2: Dict) -> bool:
+        """Check if two PDFs are similar."""
+        try:
+            # Compare metadata
+            if 'pdf_metadata' in file1 and 'pdf_metadata' in file2:
+                meta1 = file1['pdf_metadata']
+                meta2 = file2['pdf_metadata']
+                
+                # Compare titles
+                if meta1.get('title') and meta2.get('title'):
+                    if fuzz.ratio(meta1['title'], meta2['title']) > 70:
+                        return True
+                        
+                # Compare authors
+                if meta1.get('author') and meta2.get('author'):
+                    if fuzz.ratio(meta1['author'], meta2['author']) > 70:
+                        return True
+        except:
+            pass
+            
+        return False 

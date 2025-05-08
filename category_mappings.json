@@ -1,0 +1,187 @@
+{
+  "document": {
+    "name": "Belgeler",
+    "keywords": [
+      "belge",
+      "doküman",
+      "rapor",
+      "fatura",
+      "makale",
+      "cv",
+      "özgeçmiş"
+    ],
+    "extensions": [
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".txt",
+      ".rtf",
+      ".odt",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx"
+    ],
+    "mime_types": [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+      "application/rtf",
+      "application/vnd.oasis.opendocument.text",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    ]
+  },
+  "media": {
+    "name": "Medya",
+    "keywords": [
+      "fotoğraf",
+      "video",
+      "müzik",
+      "görsel",
+      "resim",
+      "film"
+    ],
+    "extensions": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".bmp",
+      ".mp4",
+      ".avi",
+      ".mov",
+      ".mp3",
+      ".wav",
+      ".flac"
+    ],
+    "mime_types": [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/bmp",
+      "video/mp4",
+      "video/x-msvideo",
+      "video/quicktime",
+      "audio/mpeg",
+      "audio/wav",
+      "audio/flac"
+    ]
+  },
+  "code": {
+    "name": "Kod",
+    "keywords": [
+      "kod",
+      "program",
+      "yazılım",
+      "script",
+      "kaynak",
+      "source"
+    ],
+    "extensions": [
+      ".py",
+      ".js",
+      ".html",
+      ".css",
+      ".java",
+      ".cpp",
+      ".c",
+      ".h",
+      ".php",
+      ".ts",
+      ".jsx",
+      ".tsx"
+    ],
+    "mime_types": [
+      "text/x-python",
+      "application/javascript",
+      "text/html",
+      "text/css",
+      "text/x-java-source",
+      "text/x-c++src",
+      "text/x-csrc",
+      "text/x-c++hdr",
+      "text/x-php",
+      "application/typescript",
+      "text/jsx",
+      "text/tsx"
+    ]
+  },
+  "design": {
+    "name": "Tasarım",
+    "keywords": [
+      "tasarım",
+      "çizim",
+      "logo",
+      "banner",
+      "mockup",
+      "wireframe"
+    ],
+    "extensions": [
+      ".psd",
+      ".ai",
+      ".sketch",
+      ".fig",
+      ".xd",
+      ".indd",
+      ".ind",
+      ".eps",
+      ".svg"
+    ],
+    "mime_types": [
+      "image/vnd.adobe.photoshop",
+      "application/postscript",
+      "application/x-sketch",
+      "application/x-figma",
+      "application/x-adobe-xd",
+      "application/x-indesign",
+      "application/postscript",
+      "image/svg+xml"
+    ]
+  },
+  "archive": {
+    "name": "Arşiv",
+    "keywords": [
+      "arşiv",
+      "zip",
+      "rar",
+      "backup",
+      "yedek"
+    ],
+    "extensions": [
+      ".zip",
+      ".rar",
+      ".7z",
+      ".tar",
+      ".gz",
+      ".bz2"
+    ],
+    "mime_types": [
+      "application/zip",
+      "application/x-rar-compressed",
+      "application/x-7z-compressed",
+      "application/x-tar",
+      "application/gzip",
+      "application/x-bzip2"
+    ]
+  },
+  "test": {
+    "keywords": [
+      "test"
+    ],
+    "extensions": [
+      ".test"
+    ],
+    "mime_types": [
+      "application/test"
+    ]
+  },
+  "other": {
+    "name": "Diğer",
+    "extensions": [],
+    "mime_types": []
+  }
+}

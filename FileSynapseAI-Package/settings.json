@@ -1,0 +1,35 @@
+{
+    "theme": "dark",
+    "language": "tr",
+    "scan_options": {
+        "recursive": true,
+        "follow_symlinks": false,
+        "include_hidden": false,
+        "max_size_mb": 100
+    },
+    "ai_model": {
+        "model_name": "bert-base-multilingual-cased",
+        "use_gpu": true,
+        "batch_size": 32
+    },
+    "ui": {
+        "window_size": [1024, 768],
+        "show_preview": true,
+        "auto_refresh": true,
+        "show_hidden_files": false
+    },
+    "processing": {
+        "max_threads": 4,
+        "chunk_size": 1024,
+        "timeout": 30
+    },
+    "logging": {
+        "level": "INFO",
+        "max_size": 10485760,
+        "backup_count": 5
+    },
+    "categories": {
+        "default": "other",
+        "custom_rules": []
+    }
+} 
